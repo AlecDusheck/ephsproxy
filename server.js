@@ -14,6 +14,11 @@ const connect = async () => {
         process.exit(1);
     });
 
+    sshConnection.on("close", () => {
+        console.log("SSH connection closed?");
+        process.exit(1);
+    });
+
     sshConnection.connect({
         password: config.password,
         username: config.username,
@@ -28,15 +33,16 @@ const connect = async () => {
         })
     });
 
-    console.log("SSH connection prepped!");
+    log("Connected to SSH: " + config.username + "@" + config.host);
 
     socksServer = socks.createServer(socksHandler);
-    socksServer.listen(config.localPort, 'localhost', () => {
-        console.log('Socks5 server started on ' + config.localPort);
+    socksServer.listen(config.localPort, "localhost", () => {
+        log("Socks5 server started on :" + config.localPort);
     }).useAuth(socks.auth.None());
 
     socksServer.on("error", err => {
         console.log("Got error in socks5 connection:", err);
+        process.exit(1);
     });
 };
 
@@ -47,16 +53,16 @@ const socksHandler = async (info, accept, deny) => {
         info.dstPort,
         (err, stream) => {
             if (err) {
-                sshConnection.end();
                 return deny();
             }
 
             let clientSocket;
             if (clientSocket = accept(true)) {
                 stream.pipe(clientSocket).on("error", err => {
-                    console.log("Failed piping socks socket:", err)
+                    log("Failed piping socks socket: " + err.toString());
                 }).pipe(stream).on("error", err => {
-                    console.log("Failed piping ssh socket:", err)
+                    log("Failed piping ssh socket: " + err.toString());
+
                 })
             }
         });
@@ -69,9 +75,14 @@ const unbind = () => {
     }
 
     if (sshConnection) {
+        sshConnection.end();
         sshConnection.removeAllListeners();
         sshConnection = undefined;
     }
+};
+
+const log = (info) => {
+    console.log("[" + Date.now() + "]", info);
 };
 
 connect();
