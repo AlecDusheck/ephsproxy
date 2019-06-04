@@ -1,14 +1,16 @@
 const logUpdate = require('log-update');
+const readline = require('readline');
+const path = require('path');
+const fs = require('fs-extra');
+const socks = require('socksv5');
+const Client = require('ssh2').Client;
 
 const clui = require('clui');
 const Sparkline = clui.Sparkline;
 const Spinner = clui.Spinner;
 
 let alert = "";
-
-const socks = require('socksv5');
-const Client = require('ssh2').Client;
-const config = require('./config');
+let config;
 
 (async () => {
     let socksServer;
@@ -47,19 +49,19 @@ const config = require('./config');
             });
         });
 
-        log("Connected to SSH: " + config.username + "@" + config.host);
+        log("SSH connected: " + config.username + "@" + config.host);
 
         socksServer = socks.createServer(socksHandler);
 
         await new Promise(resolve => {
             socksServer.listen(config.localPort, "localhost", () => {
-                log("Socks5 server started on :" + config.localPort);
+                log("Local proxy started on :" + config.localPort);
                 return resolve();
             }).useAuth(socks.auth.None());
         });
 
         socksServer.on("error", err => {
-            console.log("Got error in socks5 connection:", err);
+            console.log("Failed to host local proxy:", err);
             process.exit(1);
         });
     };
@@ -79,9 +81,9 @@ const config = require('./config');
                 let clientSocket;
                 if (clientSocket = accept(true)) {
                     stream.pipe(clientSocket).on("error", err => {
-                        log("Failed piping socks socket: " + err.toString());
+                        log("Error in proxy socket: " + err.code);
                     }).pipe(stream).on("error", err => {
-                        log("Failed piping ssh socket: " + err.toString());
+                        log("Error in ssh socket: " + err.code);
 
                     });
                 }
@@ -102,7 +104,6 @@ const config = require('./config');
     };
 
     const log = (info) => {
-        // console.log("[" + Date.now() + "]", info);
         alert = info;
     };
 
@@ -122,6 +123,43 @@ const config = require('./config');
         }, 1000);
     };
 
+    const loadConfig = async () => {
+        const configPath = path.join(__dirname, "config.json");
+        try {
+            config = await fs.readJson(configPath);
+        } catch (e) { // File not found
+            const rl = readline.createInterface({
+                input: process.stdin,
+                output: process.stdout
+            });
+
+            // Load defaults
+            config = {
+                host: "proxy.notalec.com",
+                localPort: 5000
+            };
+
+            console.log("Assuming default host: " + config.host);
+
+            await new Promise(resolve => {
+                rl.question('SimpleProxy username: ', (answer) => {
+                    config.username = answer;
+                    return resolve();
+                });
+            });
+
+            await new Promise(resolve => {
+                rl.question('SimpleProxy password: ', (answer) => {
+                    config.password = answer;
+                    return resolve();
+                });
+            });
+
+            await fs.writeJson(configPath, config);
+        }
+    };
+
+    await loadConfig();
     countdown.start();
     await connect();
     countdown.stop();
