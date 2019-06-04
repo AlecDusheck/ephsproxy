@@ -45,7 +45,7 @@ const socksHandler = async (info, accept, deny) => {
         info.srcPort,
         info.dstAddr,
         info.dstPort,
-        function (err, stream) {
+        (err, stream) => {
             if (err) {
                 sshConnection.end();
                 return deny();
@@ -53,13 +53,12 @@ const socksHandler = async (info, accept, deny) => {
 
             let clientSocket;
             if (clientSocket = accept(true)) {
-                stream.pipe(clientSocket).pipe(stream).on('close', function () {
-                    sshConnection.end();
-                }).on("error", err => {
-                    console.log("Testing error:", err);
+                stream.pipe(clientSocket).on("error", err => {
+                    console.log("Failed piping socks socket:", err)
+                }).pipe(stream).on("error", err => {
+                    console.log("Failed piping ssh socket:", err)
                 })
-            } else
-                sshConnection.end();
+            }
         });
 };
 
