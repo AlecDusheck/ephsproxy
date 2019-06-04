@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "clui": "^0.3.6",
+    "log-update": "^3.2.0",
     "socksv5": "0.0.6",
     "ssh2": "^0.8.4"
   }
