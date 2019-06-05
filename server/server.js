@@ -47,13 +47,8 @@ let config;
 
         sshConnection = new Client();
 
-        sshConnection.on("error", err => {
-            sshErrorHandler(err)
-        });
-
-        sshConnection.on("close", () => {
-            sshErrorHandler(new Error("Connection closed by host"))
-        });
+        sshConnection.on("error", sshErrorHandler);
+        sshConnection.on("close", sshErrorHandler); // This is unexpected
 
         sshConnection.connect({
             password: config.password,
@@ -72,8 +67,8 @@ let config;
         log("SSH connected: " + config.username + "@" + config.host);
     };
 
-    const sshErrorHandler = (err) => {
-        console.log("Got fatal error in SSH connection:", err + ". Attempting to reconnect in 5 seconds...");
+    const sshErrorHandler = () => {
+        log("Fatal SSH error... reconnecting");
 
         setTimeout(() => {
             connectSsh();
@@ -81,26 +76,30 @@ let config;
     };
 
     const socksHandler = async (info, accept, deny) => {
-        sshConnection.forwardOut(info.srcAddr,
-            info.srcPort,
-            info.dstAddr,
-            info.dstPort,
-            (err, stream) => {
-                if (err) {
-                    return deny();
-                }
+        try {
+            await sshConnection.forwardOut(info.srcAddr,
+                info.srcPort,
+                info.dstAddr,
+                info.dstPort,
+                (err, stream) => {
+                    if (err) {
+                        return deny();
+                    }
 
-                totalRequests++;
+                    totalRequests++;
 
-                let clientSocket;
-                if (clientSocket = accept(true)) {
-                    stream.pipe(clientSocket).on("error", err => {
-                        log("Error in proxy socket: " + err.code);
-                    }).pipe(stream).on("error", err => {
-                        log("Error in ssh socket: " + err.code);
-                    });
-                }
-            });
+                    let clientSocket;
+                    if (clientSocket = accept(true)) {
+                        stream.pipe(clientSocket).on("error", err => {
+                            log("Error in proxy socket: " + err.code);
+                        }).pipe(stream).on("error", err => {
+                            log("Error in ssh socket: " + err.code);
+                        });
+                    }
+                });
+        }catch (e) { // The ssh connection may not be active
+            return deny();
+        }
     };
 
     const log = (info) => {

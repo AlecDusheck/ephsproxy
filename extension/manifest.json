@@ -1,0 +1,23 @@
+{
+  "name": "SimpleProxy",
+  "version": "69.0.69",
+  "manifest_version": 2,
+  "description": "A simple SSH proxy thing",
+  "icons": {
+    "128": "assets/images/icon.png"
+  },
+  "background": {
+    "page": "assets/html/background.html"
+  },
+  "permissions": [
+    "proxy",
+    "tabs",
+    "http://*/*",
+    "https://*/*",
+    "storage"
+  ],
+  "browser_action": {
+    "default_title": "Toggle Simple Proxy",
+    "default_icon": "assets/images/icon.png"
+  }
+}
