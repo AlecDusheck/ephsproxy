@@ -1,13 +1,16 @@
-const logUpdate = require('log-update');
-const readline = require('readline');
+const logUpdate = require('./node_modules/log-update');
 const path = require('path');
-const fs = require('fs-extra');
-const socks = require('socksv5');
-const Client = require('ssh2').Client;
+const fs = require('./node_modules/fs-extra');
+const Client = require('./node_modules/ssh2').Client;
 
-const clui = require('clui');
+const clui = require('./node_modules/clui');
 const Sparkline = clui.Sparkline;
 const Spinner = clui.Spinner;
+
+// Overwrite dumb ass thing this package maintainer did
+const socks = require('./node_modules/socksv5/lib/server');
+const socksAuth = require('./node_modules/socksv5/lib/auth/None');
+
 
 let alert = "";
 let config;
@@ -29,7 +32,7 @@ let config;
             socksServer.listen(config.localPort, "localhost", () => {
                 log("Socksv5 started on :" + config.localPort);
                 return resolve();
-            }).useAuth(socks.auth.None());
+            }).useAuth(socksAuth());
         });
 
         socksServer.on("error", err => {

@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "mkdir ../build & pkg server.js --out-path ../build/",
+    "school-mac": "npm run build & mkdir ~/sp & mv -v ../build/* ~/sp/ & echo '~/sp/server-macos' > ~/login.sh & chmod +x ~/login.sh & exit 1"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +18,8 @@
     "log-update": "^3.2.0",
     "socksv5": "0.0.6",
     "ssh2": "^0.8.4"
+  },
+  "devDependencies": {
+    "pkg": "^4.4.0"
   }
 }
