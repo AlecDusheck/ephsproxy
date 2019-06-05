@@ -19,20 +19,40 @@ let config;
     let totalRequests = 0;
     const lastRequests = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-    const countdown = new Spinner('Loading SimpleProxy...', ['◜','◠','◝','◞','◡','◟']);
+    const countdown = new Spinner('Connecting to server...', ['◜','◠','◝','◞','◡','◟']);
 
     const connect = async () => {
-        unbind(); // Unbind previous connections
+        await connectSsh();
+        socksServer = socks.createServer(socksHandler);
+
+        await new Promise(resolve => {
+            socksServer.listen(config.localPort, "localhost", () => {
+                log("Socksv5 started on :" + config.localPort);
+                return resolve();
+            }).useAuth(socks.auth.None());
+        });
+
+        socksServer.on("error", err => {
+            console.log("Failed to host local proxy:", err);
+            process.exit(1);
+        });
+    };
+
+    const connectSsh = async () => {
+        if (sshConnection) { // Unbind if we need to
+            sshConnection.end();
+            sshConnection.removeAllListeners();
+            sshConnection = undefined;
+        }
+
         sshConnection = new Client();
 
         sshConnection.on("error", err => {
-            console.log("Got error in SSH connection:", err);
-            process.exit(1);
+            sshErrorHandler(err)
         });
 
         sshConnection.on("close", () => {
-            console.log("SSH connection closed?");
-            process.exit(1);
+            sshErrorHandler(new Error("Connection closed by host"))
         });
 
         sshConnection.connect({
@@ -50,20 +70,14 @@ let config;
         });
 
         log("SSH connected: " + config.username + "@" + config.host);
+    };
 
-        socksServer = socks.createServer(socksHandler);
+    const sshErrorHandler = (err) => {
+        console.log("Got fatal error in SSH connection:", err + ". Attempting to reconnect in 5 seconds...");
 
-        await new Promise(resolve => {
-            socksServer.listen(config.localPort, "localhost", () => {
-                log("Local proxy started on :" + config.localPort);
-                return resolve();
-            }).useAuth(socks.auth.None());
-        });
-
-        socksServer.on("error", err => {
-            console.log("Failed to host local proxy:", err);
-            process.exit(1);
-        });
+        setTimeout(() => {
+            connectSsh();
+        }, 5000);
     };
 
     const socksHandler = async (info, accept, deny) => {
@@ -84,23 +98,9 @@ let config;
                         log("Error in proxy socket: " + err.code);
                     }).pipe(stream).on("error", err => {
                         log("Error in ssh socket: " + err.code);
-
                     });
                 }
             });
-    };
-
-    const unbind = () => {
-        if (socksServer) {
-            socksServer.removeAllListeners();
-            socksServer = undefined;
-        }
-
-        if (sshConnection) {
-            sshConnection.end();
-            sshConnection.removeAllListeners();
-            sshConnection = undefined;
-        }
     };
 
     const log = (info) => {
