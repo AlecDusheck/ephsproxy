@@ -137,7 +137,7 @@ let config;
 
             // Load defaults
             config = {
-                host: "proxy.notalec.com",
+                host: "derangedrock.com",
                 localPort: 5000
             };
 

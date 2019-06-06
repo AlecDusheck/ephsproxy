@@ -9,4 +9,6 @@ You may edit the config.json after generation or edit the default values in the 
 After executing `npm install`, go over to the `/server` directory and run `npm run school-mac`.
 You may now use the `P.app` file in the project root to run the server.
 
+You may distribute the binaries freely as they do not require the NodeJS runtime on other computers; only you need it
+
 Next, install the unpacked Chrome extension that's located in `/extension`
