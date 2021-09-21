@@ -17,7 +17,7 @@
     "fs-extra": "^8.0.1",
     "log-update": "^3.2.0",
     "socksv5": "0.0.6",
-    "ssh2": "^0.8.4"
+    "ssh2": "^1.4.0"
   },
   "devDependencies": {
     "pkg": "^4.4.0"
